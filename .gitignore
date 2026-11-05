@@ -38,3 +38,5 @@ uploads/
 __pycache__/
 *.py[cod]
 *.sqlite3
+# Old Django backend - not used
+/backend/
