@@ -51,6 +51,7 @@ func main() {
 	placementHandler := handlers.NewPlacementHandler(db)
 	adminHandler := handlers.NewAdminHandler(db)
 	paymentHandler := handlers.NewPaymentHandler(db)
+	khaltiHandler := handlers.NewKhaltiHandler(db)
 
 	// ==========================================
 	// AUTH ROUTES
@@ -81,6 +82,7 @@ func main() {
 	r.GET("/api/applications/tutor", middleware.AuthRequired(), applicationHandler.GetTutorApplications)
 	r.GET("/api/applications/parent", middleware.AuthRequired(), applicationHandler.GetParentApplications)
 	r.PUT("/api/application/:id/status", middleware.AuthRequired(), applicationHandler.UpdateApplicationStatus)
+	r.POST("/api/application/:id/withdraw", middleware.AuthRequired(), applicationHandler.WithdrawApplication)
 
 	// ==========================================
 	// SCHEDULE ROUTES
@@ -105,6 +107,7 @@ func main() {
 	r.GET("/api/placement/:id", middleware.AuthRequired(), placementHandler.GetPlacementByID)
 	r.PUT("/api/placement/:id/pay", middleware.AuthRequired(), placementHandler.MarkAsPaid)
 	r.PUT("/api/placement/:id/confirm", middleware.AuthRequired(), placementHandler.ConfirmPayment)
+	r.POST("/api/placement/:id/cancel", middleware.AuthRequired(), placementHandler.CancelPlacement)
 
 	// ==========================================
 	// PAYMENT ROUTES (Placement Fee Flow)
@@ -113,6 +116,9 @@ func main() {
 	// Payment routes (Placement Fee Flow)
 	r.PUT("/api/payments/:id/confirm", middleware.AuthRequired(), paymentHandler.ConfirmPayment)
 	r.PUT("/api/payments/:id/fail", middleware.AuthRequired(), paymentHandler.FailPayment)
+	// Khalti routes
+	r.POST("/api/payments/khalti/initiate", middleware.AuthRequired(), khaltiHandler.InitiatePayment)
+	r.POST("/api/payments/khalti/verify", middleware.AuthRequired(), khaltiHandler.VerifyPayment)
 	r.GET("/api/payments/placement/:placementId", middleware.AuthRequired(), paymentHandler.GetPaymentsForPlacement)
 
 	// ==========================================

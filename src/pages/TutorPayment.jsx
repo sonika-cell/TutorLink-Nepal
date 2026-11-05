@@ -7,13 +7,12 @@ function TutorPayment() {
   const { applicationId } = useParams();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [payment, setPayment] = useState(null);
   const [application, setApplication] = useState(null);
   const [placement, setPlacement] = useState(null);
   const [processing, setProcessing] = useState(false);
   const { showToast } = useToast();
 
-  // Fetch application + placement + create payment
+  // Fetch application + placement
   useEffect(() => {
     const setup = async () => {
       try {
@@ -62,30 +61,6 @@ function TutorPayment() {
         }
 
         setPlacement(pl);
-
-        // 3. Create payment (or fetch existing pending)
-        const payRes = await fetch(
-          "http://localhost:8080/api/payments/create",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({
-              placement_id: pl.id,
-              provider: "eSewa",
-            }),
-          }
-        );
-
-        const payData = await payRes.json();
-
-        if (payRes.ok) {
-          setPayment(payData.payment);
-        } else {
-          setError(payData.error || "Could not create payment");
-        }
       } catch (err) {
         console.error("Error:", err);
         setError("Something went wrong");
@@ -97,68 +72,42 @@ function TutorPayment() {
     setup();
   }, [applicationId, navigate]);
 
-  // Handle "I've Paid"
-  const handleConfirm = async () => {
-    if (!payment) return;
+  // Pay with Khalti — initiate and redirect
+  const handlePayWithKhalti = async () => {
+    if (!placement) return;
 
     setProcessing(true);
     try {
       const token = localStorage.getItem("access_token");
       const res = await fetch(
-        `http://localhost:8080/api/payments/${payment.id}/confirm`,
+        "http://localhost:8080/api/payments/khalti/initiate",
         {
-          method: "PUT",
-          headers: { Authorization: `Bearer ${token}` },
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            placement_id: placement.id,
+          }),
         }
       );
 
       const data = await res.json();
 
-      if (res.ok) {
-        showToast("✅ Payment confirmed! You can now schedule the demo class.", "success");
-        navigate("/tutor/dashboard");
+      if (res.ok && data.payment_url) {
+        // Redirect to Khalti sandbox
+        window.location.href = data.payment_url;
       } else {
-        showToast(data.error || "Could not confirm payment", "error");
+        showToast(
+          data.error || "Could not initiate Khalti payment",
+          "error"
+        );
+        setProcessing(false);
       }
     } catch (err) {
       console.error(err);
       showToast("Something went wrong", "error");
-    } finally {
-      setProcessing(false);
-    }
-  };
-
-  // Handle "Payment Failed"
-  const handleFail = async () => {
-    if (!payment) return;
-
-    if (!window.confirm("Mark this payment as failed? You can retry later.")) {
-      return;
-    }
-
-    setProcessing(true);
-    try {
-      const token = localStorage.getItem("access_token");
-      const res = await fetch(
-        `http://localhost:8080/api/payments/${payment.id}/fail`,
-        {
-          method: "PUT",
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      const data = await res.json();
-
-      if (res.ok) {
-        showToast("Payment marked as failed. Return to dashboard to try again.", "error");
-        navigate("/tutor/dashboard");
-      } else {
-        showToast(data.error || "Could not update payment", "error");
-      }
-    } catch (err) {
-      console.error(err);
-      showToast("Something went wrong", "error");
-    } finally {
       setProcessing(false);
     }
   };
@@ -195,7 +144,7 @@ function TutorPayment() {
     );
   }
 
-  const fee = payment?.amount || placement?.amount || 0;
+  const fee = placement?.amount || 0;
 
   return (
     <div className="min-h-screen bg-slate-50 px-4 py-8">
@@ -256,11 +205,11 @@ function TutorPayment() {
         </div>
 
         {/* Payment Amount */}
-        <div className="mb-6 rounded-2xl border-2 border-teal-500 bg-white p-6 shadow-sm">
+        <div className="mb-6 rounded-2xl border-2 border-purple-500 bg-white p-6 shadow-sm">
           <p className="text-center text-xs font-bold uppercase tracking-wide text-slate-400">
             Placement Fee
           </p>
-          <p className="mt-2 text-center text-5xl font-extrabold text-teal-600">
+          <p className="mt-2 text-center text-5xl font-extrabold text-purple-600">
             Rs. {fee}
           </p>
           <p className="mt-2 text-center text-xs text-slate-500">
@@ -268,65 +217,46 @@ function TutorPayment() {
           </p>
         </div>
 
-        {/* QR Codes */}
+        {/* Khalti Payment Card */}
         <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="mb-4 text-center text-lg font-extrabold text-[#10243e]">
-            📱 Pay via QR Code
-          </h2>
-
-          <div className="grid grid-cols-2 gap-4">
-            {/* eSewa QR */}
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-center">
-              <img
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=TutorLink-eSewa-Rs${fee}`}
-                alt="eSewa QR"
-                className="mx-auto h-40 w-40 rounded-lg bg-white p-2"
-              />
-              <p className="mt-3 text-sm font-bold text-emerald-600">eSewa</p>
-            </div>
-
-            {/* Khalti QR */}
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-center">
-              <img
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=TutorLink-Khalti-Rs${fee}`}
-                alt="Khalti QR"
-                className="mx-auto h-40 w-40 rounded-lg bg-white p-2"
-              />
-              <p className="mt-3 text-sm font-bold text-purple-600">Khalti</p>
-            </div>
-          </div>
-
-          {/* Instructions */}
-          <div className="mt-6 rounded-xl bg-blue-50 p-4">
-            <p className="mb-2 text-xs font-bold uppercase tracking-wide text-blue-700">
-              How to pay:
+          <div className="text-center mb-6">
+            <h2 className="text-lg font-extrabold text-[#10243e]">
+              Pay with Khalti
+            </h2>
+            <p className="mt-2 text-sm text-slate-500">
+              Secure payment via Khalti Sandbox
             </p>
-            <ol className="space-y-1 text-sm text-blue-700">
-              <li>1. Open your eSewa or Khalti app</li>
-              <li>2. Scan the QR code above</li>
-              <li>3. Pay <strong>Rs. {fee}</strong></li>
-              <li>4. Click <strong>"I've Paid"</strong> below</li>
-            </ol>
           </div>
-        </div>
 
-        {/* Action Buttons */}
-        <div className="flex flex-col gap-3 sm:flex-row">
+          {/* Khalti QR Placeholder */}
+          <div className="flex justify-center mb-6">
+            <div className="rounded-2xl border-2 border-purple-200 bg-white p-4">
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=Khalti-Pay-Rs${fee}-Placement${placement?.id || 0}`}
+                alt="Khalti Payment QR"
+                className="h-56 w-56 rounded-lg"
+              />
+            </div>
+          </div>
+
+          {/* Amount below QR */}
+          <p className="text-center text-2xl font-extrabold text-purple-600 mb-6">
+            Rs. {fee}
+          </p>
+
+          {/* Pay Button */}
           <button
-            onClick={handleConfirm}
-            disabled={processing || !payment}
-            className="flex-1 rounded-xl bg-teal-500 py-4 text-base font-bold text-white shadow-md transition hover:bg-teal-600 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={handlePayWithKhalti}
+            disabled={processing || !placement}
+            className="w-full rounded-xl bg-purple-600 py-4 text-base font-bold text-white shadow-md transition hover:bg-purple-700 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {processing ? "Processing..." : "✅ I've Paid"}
+            {processing ? "Redirecting to Khalti..." : "Pay with Khalti"}
           </button>
 
-          <button
-            onClick={handleFail}
-            disabled={processing || !payment}
-            className="flex-1 rounded-xl border-2 border-red-200 bg-white py-4 text-base font-bold text-red-600 transition hover:bg-red-50 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {processing ? "Processing..." : "❌ Payment Failed"}
-          </button>
+          {/* Sandbox Note */}
+          <p className="mt-3 text-center text-xs text-slate-400">
+            🔒 Sandbox mode · No real money will be charged
+          </p>
         </div>
 
         {/* Back Link */}

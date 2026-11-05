@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminLayout from "../components/AdminLayout";
 import { useToast } from "../context/ToastContext";
+import ConfirmModal from "../components/ConfirmModal";
 
 function AdminPosts() {
   const navigate = useNavigate();
@@ -14,6 +15,13 @@ function AdminPosts() {
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+
+  // Delete confirm modal state
+  const [deleteModal, setDeleteModal] = useState({
+    isOpen: false,
+    postId: null,
+    loading: false,
+  });
 
   // Fetch posts
   useEffect(() => {
@@ -69,16 +77,34 @@ function AdminPosts() {
     setFilteredPosts(result);
   }, [searchQuery, statusFilter, posts]);
 
-  // Handle delete
-  const handleDelete = async (postId) => {
-    if (!window.confirm("Delete this tuition post? This cannot be undone.")) {
-      return;
-    }
+  // Open delete modal
+  const openDeleteModal = (postId) => {
+    setDeleteModal({
+      isOpen: true,
+      postId,
+      loading: false,
+    });
+  };
+
+  // Close delete modal
+  const closeDeleteModal = () => {
+    setDeleteModal({
+      isOpen: false,
+      postId: null,
+      loading: false,
+    });
+  };
+
+  // Confirm delete
+  const handleDelete = async () => {
+    if (!deleteModal.postId) return;
+
+    setDeleteModal({ ...deleteModal, loading: true });
 
     try {
       const token = localStorage.getItem("access_token");
       const response = await fetch(
-        `http://localhost:8080/api/tuition/post/${postId}`,
+        `http://localhost:8080/api/tuition/post/${deleteModal.postId}`,
         {
           method: "DELETE",
           headers: { Authorization: `Bearer ${token}` },
@@ -87,14 +113,17 @@ function AdminPosts() {
 
       if (response.ok) {
         showToast("Post deleted successfully", "success");
-        setPosts(posts.filter((p) => p.id !== postId));
+        setPosts(posts.filter((p) => p.id !== deleteModal.postId));
+        closeDeleteModal();
       } else {
         const data = await response.json();
         showToast(data.error || "Failed to delete", "error");
+        setDeleteModal({ ...deleteModal, loading: false });
       }
     } catch (err) {
       console.error(err);
       showToast("Something went wrong", "error");
+      setDeleteModal({ ...deleteModal, loading: false });
     }
   };
 
@@ -234,7 +263,9 @@ function AdminPosts() {
                   {/* Details */}
                   <div className="mt-4 space-y-1.5 text-xs text-slate-500">
                     <p>
-                      <span className="font-semibold text-slate-600">Grade:</span>{" "}
+                      <span className="font-semibold text-slate-600">
+                        Grade:
+                      </span>{" "}
                       {post.grade}
                     </p>
                     {post.location && (
@@ -246,7 +277,9 @@ function AdminPosts() {
                       </p>
                     )}
                     <p>
-                      <span className="font-semibold text-slate-600">Mode:</span>{" "}
+                      <span className="font-semibold text-slate-600">
+                        Mode:
+                      </span>{" "}
                       {post.preferred_mode === "online"
                         ? "💻 Online"
                         : "🏠 Offline"}
@@ -285,7 +318,7 @@ function AdminPosts() {
                       {post.created_at}
                     </p>
                     <button
-                      onClick={() => handleDelete(post.id)}
+                      onClick={() => openDeleteModal(post.id)}
                       className="rounded-xl border-2 border-red-200 bg-white px-4 py-2 text-xs font-bold text-red-600 transition hover:bg-red-50"
                     >
                       🗑 Delete
@@ -297,6 +330,19 @@ function AdminPosts() {
           )}
         </div>
       )}
+
+      {/* Delete Confirm Modal */}
+      <ConfirmModal
+        isOpen={deleteModal.isOpen}
+        onClose={closeDeleteModal}
+        onConfirm={handleDelete}
+        loading={deleteModal.loading}
+        title="Delete Post?"
+        message="This action cannot be undone. The tuition post will be permanently deleted from the platform."
+        confirmText="Yes, Delete"
+        cancelText="Cancel"
+        variant="danger"
+      />
     </AdminLayout>
   );
 }

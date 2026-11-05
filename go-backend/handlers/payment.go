@@ -420,3 +420,88 @@ func (h *PaymentHandler) GetPaymentsForPlacement(c *gin.Context) {
 		"payments":     payments,
 	})
 }
+
+// CancelPlacement - Tutor declines a hire (only before payment)
+// POST /api/placement/:id/cancel
+func (h *PlacementHandler) CancelPlacement(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "User not authenticated",
+		})
+		return
+	}
+
+	placementID := c.Param("id")
+	if placementID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Placement ID is required",
+		})
+		return
+	}
+
+	// Load the placement
+	var placement models.Placement
+	if err := h.DB.First(&placement, placementID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": "Placement not found",
+		})
+		return
+	}
+
+	// Verify this is the tutor who owns the placement
+	if placement.TutorID != userID.(uint) {
+		c.JSON(http.StatusForbidden, gin.H{
+			"error": "You are not authorized to cancel this placement",
+		})
+		return
+	}
+
+	// Only allow cancel while "pending_payment"
+	if placement.Status != "pending_payment" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Cannot cancel — placement is already " + placement.Status,
+		})
+		return
+	}
+
+	// ==========================================================
+	// 1. Cancel the placement
+	// ==========================================================
+	placement.Status = "cancelled"
+	if err := h.DB.Save(&placement).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to cancel placement",
+		})
+		return
+	}
+
+	// ==========================================================
+	// 2. Mark application as "withdrawn"
+	// ==========================================================
+	var application models.Application
+	if err := h.DB.First(&application, placement.ApplicationID).Error; err == nil {
+		application.Status = "withdrawn"
+		h.DB.Save(&application)
+	}
+
+	// ==========================================================
+	// 3. Reopen the parent's tuition post
+	// ==========================================================
+	var tuitionPost models.TuitionPost
+	if err := h.DB.First(&tuitionPost, placement.TuitionPostID).Error; err == nil {
+		tuitionPost.Status = "open"
+		h.DB.Save(&tuitionPost)
+	}
+
+	// ==========================================================
+	// 4. Delete any pending payments for this placement
+	// ==========================================================
+	h.DB.Where("placement_id = ? AND status = ?", placement.ID, "pending").
+		Delete(&models.Payment{})
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":   "Placement cancelled. The post has been reopened for other tutors.",
+		"placement": placement,
+	})
+}

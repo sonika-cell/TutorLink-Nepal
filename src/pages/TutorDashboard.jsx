@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "../context/ToastContext";
+import ConfirmModal from "../components/ConfirmModal";
 
 function TutorDashboard() {
   const [parentContacts, setParentContacts] = useState({});
@@ -14,7 +15,7 @@ function TutorDashboard() {
   const [userName, setUserName] = useState("");
   const { showToast } = useToast();
 
-  // Filters (editable for tutors — they can search freely)
+  // Filters
   const [filters, setFilters] = useState({
     subject: "",
     mode: "",
@@ -22,6 +23,16 @@ function TutorDashboard() {
     search: "",
   });
 
+  // Modal state
+  const [modal, setModal] = useState({
+    isOpen: false,
+    type: "", // "withdraw" | "decline"
+    application: null,
+    placement: null,
+    loading: false,
+  });
+
+  // Load data
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user") || "{}");
     setUserName(user.username || "Tutor");
@@ -36,12 +47,9 @@ function TutorDashboard() {
         }
 
         // Fetch tuition posts
-        const postsRes = await fetch(
-          "http://localhost:8080/api/tuition/posts",
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          },
-        );
+        const postsRes = await fetch("http://localhost:8080/api/tuition/posts", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
         if (postsRes.ok) {
           const postsData = await postsRes.json();
           setTuitionPosts(postsData.posts || []);
@@ -52,7 +60,7 @@ function TutorDashboard() {
           "http://localhost:8080/api/applications/tutor",
           {
             headers: { Authorization: `Bearer ${token}` },
-          },
+          }
         );
         if (appsRes.ok) {
           const appsData = await appsRes.json();
@@ -64,27 +72,26 @@ function TutorDashboard() {
           "http://localhost:8080/api/schedules/tutor",
           {
             headers: { Authorization: `Bearer ${token}` },
-          },
+          }
         );
         if (schedulesRes.ok) {
           const schedulesData = await schedulesRes.json();
           setSchedules(schedulesData.schedules || []);
         }
 
-        // NEW: Fetch placements
-                // Fetch placements
+        // Fetch placements
         const placementsRes = await fetch(
           "http://localhost:8080/api/placements/tutor",
           {
             headers: { Authorization: `Bearer ${token}` },
-          },
+          }
         );
         if (placementsRes.ok) {
           const placementsData = await placementsRes.json();
           const fetchedPlacements = placementsData.placements || [];
           setPlacements(fetchedPlacements);
 
-          // NEW: Fetch parent contacts for confirmed placements
+          // Fetch parent contacts for confirmed placements
           const contactsMap = {};
           for (const placement of fetchedPlacements) {
             if (
@@ -96,7 +103,7 @@ function TutorDashboard() {
                   `http://localhost:8080/api/placement/${placement.id}/parent-contact`,
                   {
                     headers: { Authorization: `Bearer ${token}` },
-                  },
+                  }
                 );
                 if (contactRes.ok) {
                   const contactData = await contactRes.json();
@@ -141,13 +148,15 @@ function TutorDashboard() {
       const q = filters.search.toLowerCase();
       if (
         !post.subject?.toLowerCase().includes(q) &&
-        !post.description?.toLowerCase().includes(q)
+        !post.description?.toLowerCase().includes(q) &&
+        !post.location?.toLowerCase().includes(q)
       )
         return false;
     }
     return true;
   });
 
+  // Apply to tuition
   const handleApply = async (postId) => {
     try {
       const token = localStorage.getItem("access_token");
@@ -164,18 +173,18 @@ function TutorDashboard() {
             message:
               "I am interested in this tuition. Please consider my application.",
           }),
-        },
+        }
       );
 
       const data = await response.json();
 
       if (response.ok) {
-        showToast("✅ Application submitted successfully!", "success");
+        showToast("Application submitted successfully!", "success");
         const appsRes = await fetch(
           "http://localhost:8080/api/applications/tutor",
           {
             headers: { Authorization: `Bearer ${token}` },
-          },
+          }
         );
         if (appsRes.ok) {
           const appsData = await appsRes.json();
@@ -189,6 +198,109 @@ function TutorDashboard() {
       showToast("Something went wrong", "error");
     }
   };
+
+  // ==========================================================
+  // CANCEL ACTIONS
+  // ==========================================================
+
+  const openWithdrawModal = (application) => {
+    setModal({
+      isOpen: true,
+      type: "withdraw",
+      application,
+      placement: null,
+      loading: false,
+    });
+  };
+
+  const openDeclineModal = (application, placement) => {
+    setModal({
+      isOpen: true,
+      type: "decline",
+      application,
+      placement,
+      loading: false,
+    });
+  };
+
+  const closeModal = () => {
+    setModal({
+      isOpen: false,
+      type: "",
+      application: null,
+      placement: null,
+      loading: false,
+    });
+  };
+
+  const handleConfirmModal = async () => {
+    if (!modal.application) return;
+
+    setModal({ ...modal, loading: true });
+
+    try {
+      const token = localStorage.getItem("access_token");
+      const endpoint =
+        modal.type === "withdraw"
+          ? `http://localhost:8080/api/application/${modal.application.id}/withdraw`
+          : `http://localhost:8080/api/placement/${modal.placement.id}/cancel`;
+
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        showToast(
+          modal.type === "withdraw"
+            ? "Application withdrawn successfully"
+            : "Hire declined. The post is now open for other tutors.",
+          "success"
+        );
+
+        // Refresh applications + placements
+        const [appsRes, placementsRes, postsRes] = await Promise.all([
+          fetch("http://localhost:8080/api/applications/tutor", {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          fetch("http://localhost:8080/api/placements/tutor", {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          fetch("http://localhost:8080/api/tuition/posts", {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+        ]);
+
+        if (appsRes.ok) {
+          const appsData = await appsRes.json();
+          setApplications(appsData.applications || []);
+        }
+        if (placementsRes.ok) {
+          const placementsData = await placementsRes.json();
+          setPlacements(placementsData.placements || []);
+        }
+        if (postsRes.ok) {
+          const postsData = await postsRes.json();
+          setTuitionPosts(postsData.posts || []);
+        }
+
+        closeModal();
+      } else {
+        showToast(data.error || "Action failed", "error");
+        setModal({ ...modal, loading: false });
+      }
+    } catch (err) {
+      console.error(err);
+      showToast("Something went wrong", "error");
+      setModal({ ...modal, loading: false });
+    }
+  };
+
+  // ==========================================================
+  // RENDER
+  // ==========================================================
 
   return (
     <div className="min-h-screen bg-[#FDFBF7] px-4 py-8 sm:px-6 lg:px-8">
@@ -356,7 +468,7 @@ function TutorDashboard() {
               <div className="mb-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                 {filteredPosts.map((post) => {
                   const applied = applications.find(
-                    (a) => a.tuition_post_id === post.id,
+                    (a) => a.tuition_post_id === post.id
                   );
 
                   return (
@@ -379,24 +491,29 @@ function TutorDashboard() {
                         </span>
                       </div>
 
+                      {/* Location as Main Heading */}
                       <h3 className="font-bold text-slate-800 text-lg">
-                        {post.subject}
+                        📍 {post.location || "Location not specified"}
                       </h3>
 
                       <div className="mt-3 space-y-2 text-sm">
                         <p className="text-slate-600">
-                          <span className="font-semibold">🎓 Grade:</span>{" "}
-                          {post.grade}
+                          <span className="font-semibold">📚 Subject:</span>{" "}
+                          {post.subject}
                         </p>
                         <p className="text-slate-600">
-                          <span className="font-semibold">📍 Location:</span>{" "}
-                          {post.location || "Not specified"}
+                          <span className="font-semibold">🎓 Grade:</span>{" "}
+                          {post.grade}
                         </p>
                         <p className="text-slate-600">
                           <span className="font-semibold">💻 Mode:</span>{" "}
                           {post.preferred_mode === "online"
                             ? "Online"
                             : "Offline"}
+                        </p>
+                        <p className="text-slate-600">
+                          <span className="font-semibold">💰 Budget:</span> Rs.{" "}
+                          {post.budget}
                         </p>
                       </div>
 
@@ -458,18 +575,19 @@ function TutorDashboard() {
               <div className="grid gap-3">
                 {applications.map((app) => {
                   const placement = placements.find(
-                    (p) => p.application_id === app.id,
+                    (p) => p.application_id === app.id
                   );
                   const needsPayment =
                     app.status === "hired" &&
                     placement &&
-                    placement.status !== "confirmed" &&
-                    placement.status !== "paid";
+                    placement.status === "pending_payment";
                   const canSchedule =
                     app.status === "hired" &&
                     placement &&
                     (placement.status === "confirmed" ||
                       placement.status === "paid");
+                  const canWithdraw = app.status === "pending";
+                  const canDecline = needsPayment;
 
                   return (
                     <div
@@ -484,14 +602,16 @@ function TutorDashboard() {
                           <p className="text-sm text-slate-500">
                             Status:{" "}
                             <span
-                              className={`font-medium ${
+                              className={`font-medium capitalize ${
                                 app.status === "pending"
                                   ? "text-yellow-600"
                                   : app.status === "accepted"
-                                    ? "text-green-600"
-                                    : app.status === "hired"
-                                      ? "text-teal-600"
-                                      : "text-red-600"
+                                  ? "text-green-600"
+                                  : app.status === "hired"
+                                  ? "text-teal-600"
+                                  : app.status === "withdrawn"
+                                  ? "text-slate-500"
+                                  : "text-red-600"
                               }`}
                             >
                               {app.status}
@@ -512,7 +632,9 @@ function TutorDashboard() {
                       {needsPayment && (
                         <div className="mt-3">
                           <button
-                            onClick={() => navigate(`/tutor/payment/${app.id}`)}
+                            onClick={() =>
+                              navigate(`/tutor/payment/${app.id}`)
+                            }
                             className="w-full rounded-xl bg-teal-500 py-3 text-sm font-bold text-white transition hover:bg-teal-600"
                           >
                             💰 Pay Rs. {placement.amount} to Complete Hire
@@ -520,10 +642,9 @@ function TutorDashboard() {
                         </div>
                       )}
 
-                      {/* Schedule Demo Button */}
+                      {/* Schedule Demo + Parent Contact */}
                       {canSchedule && (
                         <div className="mt-3 space-y-3">
-                          {/* Parent Contact Card */}
                           <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-4">
                             <p className="text-xs font-bold text-emerald-700 uppercase tracking-wide mb-2">
                               ✅ Payment complete · Parent Contact
@@ -534,18 +655,21 @@ function TutorDashboard() {
                                 {parentContacts[app.id]?.name || "Loading..."}
                               </p>
                               <p className="text-sm text-slate-700">
-                                <span className="font-semibold">📧 Email:</span>{" "}
+                                <span className="font-semibold">
+                                  📧 Email:
+                                </span>{" "}
                                 {parentContacts[app.id]?.email || "Loading..."}
                               </p>
                               <p className="text-sm text-slate-700">
-                                <span className="font-semibold">📞 Phone:</span>{" "}
+                                <span className="font-semibold">
+                                  📞 Phone:
+                                </span>{" "}
                                 {parentContacts[app.id]?.phone ||
                                   "Not provided"}
                               </p>
                             </div>
                           </div>
 
-                          {/* Schedule Button */}
                           <button
                             onClick={() =>
                               navigate(`/tutor/schedule/${app.id}`)
@@ -553,6 +677,29 @@ function TutorDashboard() {
                             className="w-full rounded-xl bg-teal-500 px-4 py-3 text-sm font-bold text-white transition hover:bg-teal-600"
                           >
                             📅 Schedule Demo Class
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Cancel / Decline buttons */}
+                      {canWithdraw && (
+                        <div className="mt-3">
+                          <button
+                            onClick={() => openWithdrawModal(app)}
+                            className="w-full rounded-xl border-2 border-red-200 bg-white py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-50"
+                          >
+                            ❌ Cancel Application
+                          </button>
+                        </div>
+                      )}
+
+                      {canDecline && (
+                        <div className="mt-3">
+                          <button
+                            onClick={() => openDeclineModal(app, placement)}
+                            className="w-full rounded-xl border-2 border-red-200 bg-white py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-50"
+                          >
+                            ❌ Decline Hire
                           </button>
                         </div>
                       )}
@@ -619,8 +766,8 @@ function TutorDashboard() {
                           schedule.status === "scheduled"
                             ? "bg-blue-100 text-blue-700"
                             : schedule.status === "completed"
-                              ? "bg-green-100 text-green-700"
-                              : "bg-red-100 text-red-700"
+                            ? "bg-green-100 text-green-700"
+                            : "bg-red-100 text-red-700"
                         }`}
                       >
                         {schedule.status}
@@ -669,6 +816,29 @@ function TutorDashboard() {
           </div>
         )}
       </div>
+
+      {/* Confirm Modal */}
+      <ConfirmModal
+        isOpen={modal.isOpen}
+        onClose={closeModal}
+        onConfirm={handleConfirmModal}
+        loading={modal.loading}
+        title={
+          modal.type === "withdraw"
+            ? "Cancel Application?"
+            : "Decline Hire?"
+        }
+        message={
+          modal.type === "withdraw"
+            ? "This will withdraw your application for this tuition. You can apply to other posts anytime."
+            : "This will cancel your hire and reopen the parent's tuition post. Are you sure you want to decline?"
+        }
+        confirmText={
+          modal.type === "withdraw" ? "Yes, Withdraw" : "Yes, Decline"
+        }
+        cancelText="Keep It"
+        variant="warning"
+      />
     </div>
   );
 }

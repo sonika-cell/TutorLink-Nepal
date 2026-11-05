@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "../context/ToastContext";
+import ConfirmModal from "../components/ConfirmModal";
 
 function ParentDashboard() {
   const navigate = useNavigate();
@@ -14,6 +15,13 @@ function ParentDashboard() {
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const { showToast } = useToast();
+
+  // Confirm modal state
+  const [confirmModal, setConfirmModal] = useState({
+    isOpen: false,
+    applicationId: null,
+    loading: false,
+  });
 
   // Fetch all data
   useEffect(() => {
@@ -152,15 +160,29 @@ function ParentDashboard() {
     }
   };
 
-  // Handle Confirm Hire
-  const handleConfirmHire = async (applicationId) => {
-    if (
-      !window.confirm(
-        "Confirm hire? The tutor will be notified and must complete the TutorLink placement payment before scheduling begins."
-      )
-    ) {
-      return;
-    }
+  // Open confirm modal
+  const openConfirmHireModal = (applicationId) => {
+    setConfirmModal({
+      isOpen: true,
+      applicationId,
+      loading: false,
+    });
+  };
+
+  // Close modal
+  const closeConfirmModal = () => {
+    setConfirmModal({
+      isOpen: false,
+      applicationId: null,
+      loading: false,
+    });
+  };
+
+  // Confirm hire
+  const handleConfirmHire = async () => {
+    if (!confirmModal.applicationId) return;
+
+    setConfirmModal({ ...confirmModal, loading: true });
 
     try {
       const token = localStorage.getItem("access_token");
@@ -170,7 +192,9 @@ function ParentDashboard() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ application_id: applicationId }),
+        body: JSON.stringify({
+          application_id: confirmModal.applicationId,
+        }),
       });
 
       const data = await response.json();
@@ -187,12 +211,15 @@ function ParentDashboard() {
           const appsData = await appsRes.json();
           setApplications(appsData.applications || []);
         }
+        closeConfirmModal();
       } else {
         showToast(data.error || "Failed to confirm hire", "error");
+        setConfirmModal({ ...confirmModal, loading: false });
       }
     } catch (error) {
       console.error("Error:", error);
       showToast("Something went wrong", "error");
+      setConfirmModal({ ...confirmModal, loading: false });
     }
   };
 
@@ -201,7 +228,6 @@ function ParentDashboard() {
     const placement = placements.find((p) => p.application_id === app.id);
     const scheduledClass = schedules.find((s) => s.application_id === app.id);
 
-    // Case 1: Tutor already scheduled the demo class
     if (scheduledClass) {
       return (
         <div className="mt-3 rounded-xl bg-emerald-50 border border-emerald-200 p-3">
@@ -219,7 +245,6 @@ function ParentDashboard() {
       );
     }
 
-    // Case 2: Tutor has paid placement fee but hasn't scheduled yet
     if (
       placement &&
       (placement.status === "confirmed" || placement.status === "paid")
@@ -236,7 +261,6 @@ function ParentDashboard() {
       );
     }
 
-    // Case 3: Placement is pending payment
     if (placement && placement.status === "pending_payment") {
       return (
         <div className="mt-3 rounded-xl bg-blue-50 border border-blue-200 p-3">
@@ -250,7 +274,19 @@ function ParentDashboard() {
       );
     }
 
-    // Case 4: No placement yet (processing)
+    if (placement && placement.status === "cancelled") {
+      return (
+        <div className="mt-3 rounded-xl bg-red-50 border border-red-200 p-3">
+          <p className="text-xs text-red-700 font-semibold">
+            ❌ Tutor declined this hire
+          </p>
+          <p className="text-xs text-red-600 mt-1">
+            Your post is now open again. You can hire another tutor.
+          </p>
+        </div>
+      );
+    }
+
     return (
       <div className="mt-3 rounded-xl bg-slate-50 border border-slate-200 p-3">
         <p className="text-xs text-slate-600 font-semibold">
@@ -509,6 +545,8 @@ function ParentDashboard() {
                                 ? "bg-teal-100 text-teal-700"
                                 : application.status === "accepted"
                                 ? "bg-green-100 text-green-700"
+                                : application.status === "withdrawn"
+                                ? "bg-slate-100 text-slate-600"
                                 : "bg-red-100 text-red-700"
                             }`}
                           >
@@ -555,13 +593,15 @@ function ParentDashboard() {
                       <p className="text-sm text-slate-500">
                         Status:{" "}
                         <span
-                          className={`font-medium ${
+                          className={`font-medium capitalize ${
                             app.status === "pending"
                               ? "text-yellow-600"
                               : app.status === "hired"
                               ? "text-teal-600"
                               : app.status === "accepted"
                               ? "text-green-600"
+                              : app.status === "withdrawn"
+                              ? "text-slate-500"
                               : "text-red-600"
                           }`}
                         >
@@ -582,7 +622,7 @@ function ParentDashboard() {
                   {app.status === "pending" && (
                     <div className="flex gap-2 mt-3">
                       <button
-                        onClick={() => handleConfirmHire(app.id)}
+                        onClick={() => openConfirmHireModal(app.id)}
                         className="px-4 py-2 bg-yellow-500 text-white text-sm font-semibold rounded-lg hover:bg-yellow-600 transition"
                       >
                         🎯 Confirm Hire
@@ -702,6 +742,19 @@ function ParentDashboard() {
           </div>
         )}
       </div>
+
+      {/* Confirm Hire Modal */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        onClose={closeConfirmModal}
+        onConfirm={handleConfirmHire}
+        loading={confirmModal.loading}
+        title="Confirm Hire?"
+        message="You are about to hire this tutor. They will be notified and must complete the placement payment before scheduling begins."
+        confirmText="Yes, Confirm Hire"
+        cancelText="Cancel"
+        variant="warning"
+      />
     </div>
   );
 }

@@ -1,184 +1,352 @@
-import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
-export default function Footer() {
-  const [showScrollTop, setShowScrollTop] = useState(false);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      if (window.scrollY > 300) {
-        setShowScrollTop(true);
-      } else {
-        setShowScrollTop(false);
-      }
-    };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  const scrollToTop = () => {
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth"
-    });
-  };
+function Footer() {
+  const navigate = useNavigate();
+  const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="w-full bg-[#1b263b] text-white font-sans relative overflow-hidden pt-16 pb-8 border-t border-slate-800">
-      <div className="max-w-7xl mx-auto px-6 lg:px-12">
-        
-        {/* Top Grid Area */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 pb-16">
-          
-          {/* LEFT SECTION — BRAND */}
-          <div className="lg:col-span-4 flex flex-col items-start">
-            <div className="flex items-center gap-3 mb-6 group cursor-pointer">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center shadow-lg shadow-pink-500/20 transform group-hover:scale-105 transition-transform">
-                <span className="text-white font-black text-xl italic">T</span>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-2xl font-extrabold tracking-tight text-white flex items-center">
-                  Tutor<span className="text-pink-500">Link</span>
-                </span>
-                <span className="text-[10px] tracking-widest uppercase text-slate-400 font-semibold -mt-1">
-                  Nepal
-                </span>
-              </div>
+    <footer className="bg-[#1a2a3a] text-white">
+      <div className="max-w-7xl mx-auto px-6 py-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
+          {/* Brand Column */}
+          <div>
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-3xl">🌞</span>
+              <span className="text-2xl font-extrabold tracking-tight">
+                TutorLink
+              </span>
             </div>
 
-            <p className="text-slate-300 text-sm leading-relaxed mb-6 font-normal">
-              TutorLink Nepal connects passionate educators with students looking for personalized learning. Share your knowledge, inspire learners, and grow your tutoring journey with us.
+            <p className="text-slate-300 text-sm leading-relaxed mb-6">
+              TutorLink connects students with expert tutors, making learning
+              easier, more accessible, and more effective. Get personalized
+              support and achieve your academic goals.
             </p>
 
-            <div className="flex flex-col gap-3 mb-8">
-              <div className="flex items-center gap-3 text-slate-300 text-sm hover:text-pink-400 transition-colors">
-                <span className="w-8 h-8 rounded-lg bg-slate-800/80 flex items-center justify-center text-pink-400 shrink-0 text-xs">✉</span>
-                <a href="mailto:support@tutorlinknepal.com">support@tutorlinknepal.com</a>
-              </div>
-              <div className="flex items-center gap-3 text-slate-300 text-sm">
-                <span className="w-8 h-8 rounded-lg bg-slate-800/80 flex items-center justify-center text-pink-400 shrink-0 text-xs">📍</span>
-                <span>Nepal</span>
-              </div>
+            <div className="space-y-2 text-sm text-slate-300">
+              <p className="flex items-center gap-2">
+                <span>📧</span> support@tutorlink.com
+              </p>
+              <p className="flex items-center gap-2">
+                <span>📍</span> 123 Learning Way, Education City, Nepal
+              </p>
             </div>
 
-            <div className="flex items-center gap-3">
-              {["FB", "IG", "IN", "YT", "TK"].map((label, index) => (
-                <a
-                  key={index}
-                  href={`#${label.toLowerCase()}`}
-                  aria-label={label}
-                  className="w-10 h-10 rounded-full bg-slate-800/80 text-white font-bold text-xs flex items-center justify-center transition-all duration-300 hover:bg-pink-500 hover:scale-110 shadow-sm"
+            {/* Social Icons */}
+            <div className="flex gap-3 mt-6">
+              <a
+                href="#"
+                className="w-10 h-10 rounded-full bg-slate-700 hover:bg-slate-600 flex items-center justify-center transition"
+                aria-label="Facebook"
+              >
+                <svg
+                  className="w-4 h-4 text-white"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
                 >
-                  {label}
-                </a>
-              ))}
+                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+                </svg>
+              </a>
+              <a
+                href="#"
+                className="w-10 h-10 rounded-full bg-slate-700 hover:bg-slate-600 flex items-center justify-center transition"
+                aria-label="Instagram"
+              >
+                <svg
+                  className="w-4 h-4 text-white"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z" />
+                </svg>
+              </a>
+              <a
+                href="#"
+                className="w-10 h-10 rounded-full bg-slate-700 hover:bg-slate-600 flex items-center justify-center transition"
+                aria-label="LinkedIn"
+              >
+                <svg
+                  className="w-4 h-4 text-white"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+                </svg>
+              </a>
+              <a
+                href="#"
+                className="w-10 h-10 rounded-full bg-slate-700 hover:bg-slate-600 flex items-center justify-center transition"
+                aria-label="YouTube"
+              >
+                <svg
+                  className="w-4 h-4 text-white"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
+                </svg>
+              </a>
+              <a
+                href="#"
+                className="w-10 h-10 rounded-full bg-slate-700 hover:bg-slate-600 flex items-center justify-center transition"
+                aria-label="X (Twitter)"
+              >
+                <svg
+                  className="w-4 h-4 text-white"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z" />
+                </svg>
+              </a>
             </div>
           </div>
 
-          {/* RIGHT SECTION — 4 COLUMNS */}
-          <div className="lg:col-span-8 grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-8">
-            
-            {/* COLUMN 1 — ABOUT TUTORLINK */}
-            <div className="flex flex-col">
-              <h4 className="text-white font-bold text-sm tracking-wide uppercase mb-5 relative inline-block">
-                About TutorLink
-                <span className="absolute bottom-[-6px] left-0 w-6 h-0.5 bg-pink-500 rounded-full"></span>
-              </h4>
-              <ul className="flex flex-col gap-3">
-                {["About Us", "Our Mission", "How TutorLink Works", "Contact Us", "Blog"].map((name, idx) => (
-                  <li key={idx}>
-                    <a href={`#${name.toLowerCase().replace(/ /g, "-")}`} className="text-slate-300 text-sm hover:text-pink-400 transition-colors duration-200 block py-0.5">
-                      {name}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
+          {/* About Us Column */}
+          <div>
+            <h3 className="text-base font-bold mb-4">About Us</h3>
+            <ul className="space-y-2.5 text-sm text-slate-300">
+              <li>
+                <button
+                  onClick={() => navigate("/about")}
+                  className="hover:text-white transition"
+                >
+                  Our Story
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => navigate("/about")}
+                  className="hover:text-white transition"
+                >
+                  Mission & Vision
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => navigate("/about")}
+                  className="hover:text-white transition"
+                >
+                  Our Team
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => navigate("/about")}
+                  className="hover:text-white transition"
+                >
+                  Careers
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => navigate("/about")}
+                  className="hover:text-white transition"
+                >
+                  Testimonials
+                </button>
+              </li>
+            </ul>
 
-            {/* COLUMN 2 — FOR TUTORS */}
-            <div className="flex flex-col">
-              <h4 className="text-white font-bold text-sm tracking-wide uppercase mb-5 relative inline-block">
-                For Tutors
-                <span className="absolute bottom-[-6px] left-0 w-6 h-0.5 bg-pink-500 rounded-full"></span>
-              </h4>
-              <ul className="flex flex-col gap-3">
-                {[
-                  { name: "Become a Tutor", highlight: true },
-                  { name: "How It Works" },
-                  { name: "Tutor Requirements" },
-                  { name: "Tutor FAQs" },
-                  { name: "Tutor Guidelines" },
-                  { name: "Tutor Login" }
-                ].map((link, idx) => (
-                  <li key={idx}>
-                    <a 
-                      href={`#${link.name.toLowerCase().replace(/ /g, "-")}`} 
-                      className={`text-sm transition-colors duration-200 block py-0.5 ${link.highlight ? "text-pink-400 font-bold hover:text-pink-300" : "text-slate-300 hover:text-pink-400"}`}
-                    >
-                      {link.name}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
+            <h3 className="text-base font-bold mt-8 mb-4">Get Support</h3>
+            <ul className="space-y-2.5 text-sm text-slate-300">
+              <li>
+                <button
+                  onClick={() => navigate("/help")}
+                  className="hover:text-white transition"
+                >
+                  Help Center
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => navigate("/help")}
+                  className="hover:text-white transition"
+                >
+                  Contact Us
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => navigate("/help")}
+                  className="hover:text-white transition"
+                >
+                  Live Chat
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => navigate("/help")}
+                  className="hover:text-white transition"
+                >
+                  Report a Problem
+                </button>
+              </li>
+            </ul>
+          </div>
 
-            {/* COLUMN 3 — TUTOR SUPPORT */}
-            <div className="flex flex-col">
-              <h4 className="text-white font-bold text-sm tracking-wide uppercase mb-5 relative inline-block">
-                Tutor Support
-                <span className="absolute bottom-[-6px] left-0 w-6 h-0.5 bg-pink-500 rounded-full"></span>
-              </h4>
-              <ul className="flex flex-col gap-3">
-                {["Help Center", "Tutor Resources", "Application Help", "Account Support", "Contact Support", "FAQs"].map((name, idx) => (
-                  <li key={idx}>
-                    <a href={`#${name.toLowerCase().replace(/ /g, "-")}`} className="text-slate-300 text-sm hover:text-pink-400 transition-colors duration-200 block py-0.5">
-                      {name}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
+          {/* For Students Column */}
+          <div>
+            <h3 className="text-base font-bold mb-4">For Students</h3>
+            <ul className="space-y-2.5 text-sm text-slate-300">
+              <li>
+                <button
+                  onClick={() => navigate("/parent/find-tutors")}
+                  className="hover:text-white transition"
+                >
+                  Find a Tutor
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => navigate("/parent/post-tuition")}
+                  className="hover:text-white transition"
+                >
+                  Post Tuition
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => navigate("/help")}
+                  className="hover:text-white transition"
+                >
+                  Learning Resources
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => navigate("/help")}
+                  className="hover:text-white transition"
+                >
+                  Student FAQs
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => navigate("/help")}
+                  className="hover:text-white transition"
+                >
+                  Success Stories
+                </button>
+              </li>
+            </ul>
 
-            {/* COLUMN 4 — LEGAL */}
-            <div className="flex flex-col">
-              <h4 className="text-white font-bold text-sm tracking-wide uppercase mb-5 relative inline-block">
-                Legal
-                <span className="absolute bottom-[-6px] left-0 w-6 h-0.5 bg-pink-500 rounded-full"></span>
-              </h4>
-              <ul className="flex flex-col gap-3">
-                {["Terms & Conditions", "Privacy Policy", "Tutor Code of Conduct", "Online Safety", "Community Guidelines"].map((name, idx) => (
-                  <li key={idx}>
-                    <a href={`#${name.toLowerCase().replace(/ /g, "-")}`} className="text-slate-300 text-sm hover:text-pink-400 transition-colors duration-200 block py-0.5">
-                      {name}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
+            <h3 className="text-base font-bold mt-8 mb-4">Legal</h3>
+            <ul className="space-y-2.5 text-sm text-slate-300">
+              <li>
+                <button
+                  onClick={() => navigate("/help")}
+                  className="hover:text-white transition"
+                >
+                  Privacy Policy
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => navigate("/help")}
+                  className="hover:text-white transition"
+                >
+                  Terms of Service
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => navigate("/help")}
+                  className="hover:text-white transition"
+                >
+                  Cookie Policy
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => navigate("/help")}
+                  className="hover:text-white transition"
+                >
+                  GDPR Compliance
+                </button>
+              </li>
+            </ul>
+          </div>
 
+          {/* For Tutors Column */}
+          <div>
+            <h3 className="text-base font-bold mb-4">For Tutors</h3>
+            <ul className="space-y-2.5 text-sm text-slate-300">
+              <li>
+                <button
+                  onClick={() => navigate("/register?role=tutor")}
+                  className="hover:text-white transition"
+                >
+                  Become a Tutor
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => navigate("/help")}
+                  className="hover:text-white transition"
+                >
+                  Tutor Resources
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => navigate("/help")}
+                  className="hover:text-white transition"
+                >
+                  Earnings & Benefits
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => navigate("/help")}
+                  className="hover:text-white transition"
+                >
+                  Tutor FAQs
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => navigate("/help")}
+                  className="hover:text-white transition"
+                >
+                  Community
+                </button>
+              </li>
+            </ul>
           </div>
         </div>
-
-        {/* BOTTOM BAR */}
-        <div className="border-t border-slate-800/80 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
-          <p>© 2026 TutorLink Nepal. All rights reserved.</p>
-          <div className="flex items-center gap-6">
-            <a href="#terms-and-conditions" className="hover:text-pink-400 transition-colors">Terms & Conditions</a>
-            <a href="#privacy-policy" className="hover:text-pink-400 transition-colors">Privacy Policy</a>
-          </div>
-        </div>
-
       </div>
 
-      {/* Floating Back to Top Button */}
-      {showScrollTop && (
-        <button
-          onClick={scrollToTop}
-          aria-label="Back to top"
-          className="fixed bottom-6 right-6 z-50 w-11 h-11 rounded-full bg-pink-500 hover:bg-pink-600 text-white shadow-lg shadow-pink-500/30 flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 font-bold"
-        >
-          ↑
-        </button>
-      )}
+      {/* Bottom Bar */}
+      <div className="border-t border-slate-700">
+        <div className="max-w-7xl mx-auto px-6 py-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-slate-400">
+          <p>© {currentYear} TutorLink. All rights reserved.</p>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => navigate("/help")}
+              className="hover:text-white transition"
+            >
+              Terms and Conditions
+            </button>
+            <span>|</span>
+            <button
+              onClick={() => navigate("/help")}
+              className="hover:text-white transition"
+            >
+              Privacy Policy
+            </button>
+            <span>|</span>
+            <button
+              onClick={() => navigate("/help")}
+              className="hover:text-white transition"
+            >
+              Accessibility
+            </button>
+          </div>
+        </div>
+      </div>
     </footer>
   );
 }
+
+export default Footer;

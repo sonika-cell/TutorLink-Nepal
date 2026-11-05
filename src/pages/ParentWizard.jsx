@@ -14,12 +14,12 @@ function ParentWizard() {
     location: "",
     budget: "",
   });
+  const [classSearch, setClassSearch] = useState("");
   const { showToast } = useToast();
 
   const totalSteps = 6;
 
   const handleNext = () => {
-    // Validate Step 2: Subject minimum length
     if (currentStep === 2) {
       if (!answers.subject.trim()) {
         showToast("Please select or enter a subject", "error");
@@ -31,7 +31,6 @@ function ParentWizard() {
       }
     }
 
-    // Validate Step 5: Location required if At-home
     if (currentStep === 5) {
       if (answers.mode === "At-home" && !answers.location) {
         showToast("Please select a location for at-home tuition", "error");
@@ -46,6 +45,7 @@ function ParentWizard() {
 
   const handleBack = () => {
     if (currentStep > 1) {
+      setClassSearch("");
       setCurrentStep(currentStep - 1);
     }
   };
@@ -180,7 +180,6 @@ function ParentWizard() {
           {/* STEP 2: Subject */}
           {currentStep === 2 && (
             <div className="space-y-4">
-              {/* Quick Select */}
               <div className="grid grid-cols-2 gap-3">
                 {[
                   "English",
@@ -204,7 +203,6 @@ function ParentWizard() {
                 ))}
               </div>
 
-              {/* Custom Subject Input */}
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-2">
                   Or enter a custom subject
@@ -234,29 +232,76 @@ function ParentWizard() {
             </div>
           )}
 
-          {/* STEP 3: Education Level */}
+          {/* STEP 3: Education Level — NEW SEARCHABLE LIST */}
           {currentStep === 3 && (
-            <div className="grid grid-cols-2 gap-3">
-              {[
-                "Primary (Class 1-5)",
-                "Lower Secondary (6-8)",
-                "Secondary (9-10)",
-                "Higher Secondary (11-12)",
-                "Bachelor Degree",
-                "Master's Degree",
-              ].map((option) => (
-                <button
-                  key={option}
-                  onClick={() => handleSelect("education_level", option)}
-                  className={`w-full px-5 py-4 rounded-xl border transition ${
-                    answers.education_level === option
-                      ? "border-[#202020] bg-[#202020] text-white font-semibold"
-                      : "border-[#202020] bg-transparent text-[#202020] font-semibold text-sm hover:bg-[#202020] hover:text-white"
-                  }`}
-                >
-                  {option}
-                </button>
-              ))}
+            <div className="space-y-4">
+              {/* Search Bar */}
+              <div>
+                <div className="flex items-center rounded-xl border-2 border-[#202020] bg-white px-4 py-3 focus-within:ring-2 focus-within:ring-[#89CFF0] transition">
+                  <span className="mr-3 text-slate-400">🔍</span>
+                  <input
+                    type="text"
+                    value={classSearch}
+                    onChange={(e) => setClassSearch(e.target.value)}
+                    placeholder="Search your class (e.g. Class 8, Bachelor...)"
+                    className="flex-1 bg-transparent outline-none text-sm text-[#202020] font-semibold placeholder:text-slate-400"
+                  />
+                  {classSearch && (
+                    <button
+                      onClick={() => setClassSearch("")}
+                      className="text-slate-400 hover:text-slate-600 text-lg"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Scrollable Class List */}
+              <div className="max-h-80 overflow-y-auto rounded-xl border-2 border-[#202020] p-2 space-y-1">
+                {(() => {
+                  const classOptions = [
+                    ...Array.from({ length: 12 }, (_, i) => `Class ${i + 1}`),
+                    "Bachelor's Degree",
+                  ];
+
+                  const filtered = classOptions.filter((c) =>
+                    c.toLowerCase().includes(classSearch.toLowerCase())
+                  );
+
+                  if (filtered.length === 0) {
+                    return (
+                      <div className="text-center py-8 text-slate-500 text-sm">
+                        No results for "{classSearch}"
+                      </div>
+                    );
+                  }
+
+                  return filtered.map((option) => (
+                    <button
+                      key={option}
+                      onClick={() => handleSelect("education_level", option)}
+                      className={`w-full text-left px-5 py-3 rounded-lg transition ${
+                        answers.education_level === option
+                          ? "bg-[#202020] text-white font-semibold"
+                          : "bg-transparent text-[#202020] font-semibold text-sm hover:bg-slate-100"
+                      }`}
+                    >
+                      {option}
+                    </button>
+                  ));
+                })()}
+              </div>
+
+              {/* Selected indicator */}
+              {answers.education_level && (
+                <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-3 text-sm">
+                  <p className="text-emerald-700">
+                    ✅ Selected:{" "}
+                    <span className="font-bold">{answers.education_level}</span>
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
@@ -340,7 +385,6 @@ function ParentWizard() {
           {/* STEP 6: Budget */}
           {currentStep === 6 && (
             <div className="space-y-4">
-              {/* Quick Select Buttons */}
               <div className="grid grid-cols-3 gap-3">
                 {[5000, 10000, 15000].map((amount) => (
                   <button
@@ -357,7 +401,6 @@ function ParentWizard() {
                 ))}
               </div>
 
-              {/* Custom Amount */}
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-2">
                   Or enter a custom amount
@@ -383,19 +426,16 @@ function ParentWizard() {
                   />
                 </div>
 
-                {/* Range hint */}
                 <p className="mt-2 text-xs text-slate-500">
                   💰 Range: Rs. 5,000 - Rs. 1,00,000 per month
                 </p>
 
-                {/* Min error */}
                 {answers.budget && parseInt(answers.budget) < 5000 && (
                   <p className="mt-1 text-xs font-medium text-red-600">
                     ⚠️ Budget must be at least Rs. 5,000
                   </p>
                 )}
 
-                {/* Max error */}
                 {answers.budget && parseInt(answers.budget) > 100000 && (
                   <p className="mt-1 text-xs font-medium text-red-600">
                     ⚠️ Budget cannot exceed Rs. 1,00,000

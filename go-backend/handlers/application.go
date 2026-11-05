@@ -281,3 +281,62 @@ func (h *ApplicationHandler) UpdateApplicationStatus(c *gin.Context) {
 		"application": application,
 	})
 }
+
+// WithdrawApplication - Tutor withdraws their own application (only if pending)
+// POST /api/application/:id/withdraw
+func (h *ApplicationHandler) WithdrawApplication(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "User not authenticated",
+		})
+		return
+	}
+
+	applicationID := c.Param("id")
+	if applicationID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Application ID is required",
+		})
+		return
+	}
+
+	// Load the application
+	var application models.Application
+	if err := h.DB.First(&application, applicationID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": "Application not found",
+		})
+		return
+	}
+
+	// Verify this is the tutor who owns the application
+	if application.TutorID != userID.(uint) {
+		c.JSON(http.StatusForbidden, gin.H{
+			"error": "You are not authorized to withdraw this application",
+		})
+		return
+	}
+
+	// Only allow withdraw while "pending"
+	if application.Status != "pending" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Cannot withdraw — application is already " + application.Status,
+		})
+		return
+	}
+
+	// Mark as withdrawn
+	application.Status = "withdrawn"
+	if err := h.DB.Save(&application).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to withdraw application",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":     "Application withdrawn successfully",
+		"application": application,
+	})
+}
